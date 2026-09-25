@@ -317,22 +317,24 @@ function OperationsMap({workspace, refresh}) {
     const map = new window.google.maps.Map(mapRef.current, { center: { lat: 39.5, lng: -8 }, zoom: 7, mapTypeControl: false, streetViewControl: false, fullscreenControl: true });
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
-    const color = { pending: "#667085", scheduled: "#2d74da", in_progress: "#e08a18", completed: "#21a366", invoiced: "#7652c9", cancelled: "#c24141" };
+    const color = { pending: "#667085", scheduled: "#2d74da", in_progress: "#e08a18", completed: "#21a366", invoiced: "#7652c9", cancelled: "#c24141" }; const statusLabel = { pending: "Pendente", scheduled: "Agendado", in_progress: "Em curso", completed: "Concluído", invoiced: "Faturado", cancelled: "Cancelado" };
     const visible = services.filter(service => filter === "all" || service.board_status === filter).filter(service => service.latitude && service.longitude);
     const bounds = new window.google.maps.LatLngBounds();
     visible.forEach(service => {
-      const marker = new window.google.maps.Marker({ map, position: { lat: Number(service.latitude), lng: Number(service.longitude) }, title: `${service.client_name || "Cliente"} — ${service.title}`, label: { text: "●", color: color[service.board_status] || color.pending, fontSize: "28px" } });
-      const info = new window.google.maps.InfoWindow({ content: `<div class="map-info"><strong>${service.client_name || "Cliente"}</strong><span>${service.title || "Serviço"}</span><small>${service.technician_name || "Por atribuir"} · ${service.board_status || "pendente"}</small></div>` });
+      const statusColor = color[service.board_status] || color.pending;
+      const marker = new window.google.maps.Marker({ map, position: { lat: Number(service.latitude), lng: Number(service.longitude) }, title: `${service.client_name || "Cliente"} — ${service.title}`, icon: { path: window.google.maps.SymbolPath.CIRCLE, fillColor: statusColor, fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 3, scale: 10 }, label: { text: "✓", color: "#ffffff", fontSize: "11px", fontWeight: "700" }, zIndex: service.board_status === "cancelled" ? 2 : 3 });
+      const info = new window.google.maps.InfoWindow({ content: `<div class="map-info"><strong>${service.client_name || "Cliente"}</strong><span>${service.title || "Serviço"}</span><small class="map-status" style="color:${statusColor}"><i style="background:${statusColor}"></i>${statusLabel[service.board_status] || "Pendente"}</small><small>${service.technician_name || "Por atribuir"}${service.priority ? ` · Prioridade ${service.priority}` : ""}</small></div>` });
       marker.addListener("click", () => info.open({ map, anchor: marker })); markersRef.current.push(marker); bounds.extend(marker.getPosition());
     });
     if (visible.length) map.fitBounds(bounds, 70);
   }, [mapReady, services, filter]);
 
-  const counts = ["pending", "scheduled", "in_progress"].map(status => ({ status, count: services.filter(service => service.board_status === status).length }));
-  return <div><Header title="Mapa operacional" subtitle="Visualize os serviços por localização, estado e prioridade" action={<select className="map-filter" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Todos os estados</option><option value="pending">Pendentes</option><option value="scheduled">Agendados</option><option value="in_progress">Em curso</option><option value="completed">Concluídos</option></select>}/>
-    <div className="map-summary">{counts.map(({status, count}) => <div className={`map-stat ${status}`} key={status}><i/><span>{status === "pending" ? "Pendentes" : status === "scheduled" ? "Agendados" : "Em curso"}</span><strong>{count}</strong></div>)}</div>
-    <section className="panel operations-map"><div className="map-toolbar"><div><strong>Serviços geolocalizados</strong><span>{services.filter(service => service.latitude && service.longitude).length} localizações disponíveis</span></div><small>Selecione um marcador para ver os detalhes</small></div>{error ? <div className="map-message alert danger">{error}</div> : <div ref={mapRef} className="google-map" aria-label="Mapa dos serviços técnicos"/>}</section>
-    <p className="map-note">Os serviços só aparecem no mapa quando o cliente tem latitude e longitude. Adicione essas coordenadas nos dados do cliente para ativar a localização.</p>
+  const counts = ["pending", "scheduled", "in_progress", "cancelled"].map(status => ({ status, count: services.filter(service => service.board_status === status).length }));
+  const legend = ["pending", "scheduled", "in_progress", "cancelled"];
+  return <div><Header title="Mapa operacional" subtitle="Visualize cada cliente com serviço por estado e prioridade" action={<select className="map-filter" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Todos os estados</option><option value="pending">Pendentes</option><option value="scheduled">Agendados</option><option value="in_progress">Em curso</option><option value="completed">Concluídos</option><option value="cancelled">Cancelados</option></select>}/>
+    <div className="map-summary">{counts.map(({status, count}) => <div className={`map-stat ${status}`} key={status}><i/><span>{statusLabel[status]}</span><strong>{count}</strong></div>)}</div>
+    <section className="panel operations-map"><div className="map-toolbar"><div><strong>Clientes com serviços</strong><span>{services.filter(service => service.latitude && service.longitude).length} pontos no mapa · {services.length} serviços no total</span></div><div className="map-legend" aria-label="Legenda dos estados">{legend.map(status => <button type="button" className={`legend-item ${filter === status ? "active" : ""}`} key={status} onClick={() => setFilter(filter === status ? "all" : status)}><i style={{background: color[status]}} />{statusLabel[status]}</button>)}</div></div>{error ? <div className="map-message alert danger">{error}</div> : <div ref={mapRef} className="google-map" aria-label="Mapa dos clientes com serviços técnicos"/>}</section>
+    <p className="map-note">Cada ponto representa um serviço geolocalizado. As cores identificam o estado; clique num ponto para ver cliente, técnico e prioridade.</p>
   </div>;
 }
 
