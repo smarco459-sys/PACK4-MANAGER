@@ -278,6 +278,9 @@ function ServiceDetail({service, workspace, close, setRefresh}) {
   </Modal>
 }
 
+const MAP_STATUS_COLORS = { pending: "#667085", scheduled: "#2d74da", in_progress: "#e08a18", completed: "#21a366", invoiced: "#7652c9", cancelled: "#c24141" };
+const MAP_STATUS_LABELS = { pending: "Pendente", scheduled: "Agendado", in_progress: "Em curso", completed: "Concluído", invoiced: "Faturado", cancelled: "Cancelado" };
+
 function OperationsMap({workspace, refresh}) {
   const [services, setServices] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -317,7 +320,7 @@ function OperationsMap({workspace, refresh}) {
     const map = new window.google.maps.Map(mapRef.current, { center: { lat: 39.5, lng: -8 }, zoom: 7, mapTypeControl: false, streetViewControl: false, fullscreenControl: true });
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
-    const color = { pending: "#667085", scheduled: "#2d74da", in_progress: "#e08a18", completed: "#21a366", invoiced: "#7652c9", cancelled: "#c24141" }; const statusLabel = { pending: "Pendente", scheduled: "Agendado", in_progress: "Em curso", completed: "Concluído", invoiced: "Faturado", cancelled: "Cancelado" };
+    const color = MAP_STATUS_COLORS; const statusLabel = MAP_STATUS_LABELS;
     const visible = services.filter(service => filter === "all" || service.board_status === filter).filter(service => service.latitude && service.longitude);
     const bounds = new window.google.maps.LatLngBounds();
     visible.forEach(service => {
